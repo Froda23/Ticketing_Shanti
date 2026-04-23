@@ -666,6 +666,7 @@ const saveAllowedEmails = e => LS.save('allowed_emails', e);
 const saveTickets = t => LS.save('tickets', t);
 const savePasswordResets = r => LS.save('password_resets', r);
 let currentUser = null, currentPage = '', adminTicketsMyOnly = false;
+let __pendingNotify = null; // buffer notificări tichet deschis
 
 // ============================================================
 // AUTH
@@ -1189,7 +1190,13 @@ function showToast(msg, type='info') {
   setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),300); },3500);
 }
 function showModal(html) { document.getElementById('modal-container').innerHTML=html; }
-function closeModal() { document.getElementById('modal-container').innerHTML=''; }
+function closeModal() {
+  if (__pendingNotify) {
+    showToast('Email notificare trimis către ' + __pendingNotify.userName + ' pentru tichetul ' + __pendingNotify.id + '. (simulat)', 'success');
+    __pendingNotify = null;
+  }
+  document.getElementById('modal-container').innerHTML = '';
+}
 function getInitials(name) {
   if (!name) return '?';
   const p = name.trim().split(' ');
@@ -2252,33 +2259,21 @@ function updateTicketStatus(id, newStatus) {
   const tickets=getTickets(); const idx=tickets.findIndex(x=>x.id===id); if (idx<0) return;
   const t = tickets[idx];
   const prevStatus = t.status;
-  // SLA PAUSE: dacă trecem ÎN „Așteaptă client" → pornim cronometrul de pauză
-  if (newStatus === 'Așteaptă client' && prevStatus !== 'Așteaptă client') {
-    t.slaPausedAt = Date.now();
-  }
-  // SLA RESUME: dacă ieșim DIN „Așteaptă client" (manual) → adăugăm intervalul la totalul de pauză
+  if (newStatus === 'Așteaptă client' && prevStatus !== 'Așteaptă client') { t.slaPausedAt = Date.now(); }
   if (prevStatus === 'Așteaptă client' && newStatus !== 'Așteaptă client' && t.slaPausedAt) {
-    t.slaPausedMs = (t.slaPausedMs || 0) + (Date.now() - t.slaPausedAt);
-    t.slaPausedAt = null;
+    t.slaPausedMs = (t.slaPausedMs || 0) + (Date.now() - t.slaPausedAt); t.slaPausedAt = null;
   }
   t.status=newStatus; t.updatedAt=Date.now();
   if (newStatus==='Rezolvat' && !t.closedAt) t.closedAt = Date.now();
   if (newStatus!=='Rezolvat' && prevStatus==='Rezolvat') t.closedAt = null;
-  // NU atingem userActivityAt — acțiunile adminului nu urcă tichetul în listă
   saveTickets(tickets);
-  if (newStatus==='Comandat') {
-    showToast('Status: Comandat — Email de confirmare trimis către '+t.userName+'. (simulat)','success');
-  } else if (newStatus==='Așteaptă client') {
-    showToast('Status: Așteaptă client — SLA pauzat. Cronometrul se reia la răspunsul clientului.','info');
-  } else {
-    showToast('Status actualizat: '+newStatus+' — Email trimis (simulat)','success');
-  }
+  __pendingNotify = { id, userName: t.userName };
 }
 
 function updateTicketPriority(id, newPriority) {
   const tickets=getTickets(); const idx=tickets.findIndex(x=>x.id===id); if (idx<0) return;
   tickets[idx].priority=newPriority; tickets[idx].updatedAt=Date.now(); saveTickets(tickets);
-  showToast('Prioritate actualizată: '+newPriority,'success');
+  __pendingNotify = { id, userName: tickets[idx].userName };
 }
 
 function deleteTicket(id) {
@@ -2329,8 +2324,8 @@ function assignTicket(id, adminId) {
   // Prima asignare efectivă → fixăm timestamp SLA (pentru Time-to-Assignment)
   if (adminId && !tickets[idx].firstAssignedAt) tickets[idx].firstAssignedAt = Date.now();
   tickets[idx].updatedAt=Date.now(); saveTickets(tickets);
-  showToast(adminId?'Tichet asignat lui '+tickets[idx].assignedAdminName:'Asignare eliminată.','success');
-  openTicketDetail(id);
+   openTicketDetail(id);
+   __pendingNotify = { id, userName: t.userName };
 }
 
 // ============================================================
@@ -2406,13 +2401,13 @@ function renderAdminDashboard() {
     </div>
     ${renderPasswordResetsBanner()}
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-label">Total tichete</div><div class="stat-value">${s.total}</div></div>
-      <div class="stat-card amber" onclick="filterUnreadAndGo()" style="cursor:pointer;border:${s.unread>0?'2px solid #f59e0b':'1px solid #e2eaf3'}"><div class="stat-label">🔔 Activitate nouă</div><div class="stat-value">${s.unread}</div></div>
-      <div class="stat-card"><div class="stat-label">Deschise</div><div class="stat-value">${s.open}</div></div>
-      <div class="stat-card amber"><div class="stat-label">În lucru</div><div class="stat-value">${s.inlucru}</div></div>
-      <div class="stat-card purple"><div class="stat-label">Pending validare</div><div class="stat-value">${s.pending}</div></div>
-      <div class="stat-card red" onclick="filterExternsAndGo()" style="cursor:pointer" title="Click pentru a filtra tichetele clienților externi"><div class="stat-label">🌐 Clienți externi</div><div class="stat-value">${tickets.filter(t=>t.isExternal&&t.status!=='Rezolvat').length}</div></div>
-    </div>
+		<div class="stat-card" onclick="navTo('tickets')" style="cursor:pointer" title="Vezi toate tichetele"><div class="stat-label">Total tichete</div><div class="stat-value">${s.total}</div></div>
+		<div class="stat-card amber" onclick="filterUnreadAndGo()" style="cursor:pointer;border:${s.unread>0?'2px solid #f59e0b':'1px solid #e2eaf3'}" title="Filtrează după activitate nouă"><div class="stat-label">🔔 Activitate nouă</div><div class="stat-value">${s.unread}</div></div>
+		<div class="stat-card" onclick="filterStatusAndGo('Nou/Deschis')" style="cursor:pointer" title="Filtrează tichete deschise"><div class="stat-label">Deschise</div><div class="stat-value">${s.open}</div></div>
+		<div class="stat-card amber" onclick="filterStatusAndGo('În lucru')" style="cursor:pointer" title="Filtrează tichete în lucru"><div class="stat-label">În lucru</div><div class="stat-value">${s.inlucru}</div></div>
+		<div class="stat-card purple" onclick="filterPendingAndGo()" style="cursor:pointer" title="Filtrează pending validare"><div class="stat-label">Pending validare</div><div class="stat-value">${s.pending}</div></div>
+		<div class="stat-card red" onclick="filterExternsAndGo()" style="cursor:pointer" title="Filtrează clienți externi"><div class="stat-label">🌐 Clienți externi</div><div class="stat-value">${tickets.filter(t=>t.isExternal&&t.status!=='Rezolvat').length}</div></div>
+	</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <div class="card" style="margin-bottom:0">
         <div class="card-header"><div class="card-title">Statistici generale</div></div>
@@ -2459,6 +2454,7 @@ function filterPendingAndGo() { navTo('tickets'); setTimeout(()=>{ const e=docum
 function filterUnreadAndGo() { navTo('tickets'); setTimeout(()=>{ const e=document.getElementById('f-status'); if(e){e.value='__unread__';filterAdminTickets();} },100); }
 function filterMyAndGo() { navTo('tickets'); setTimeout(()=>{ adminTicketsMyOnly=true; filterAdminTickets(); const b=document.getElementById('btn-my-tickets'); if(b){b.className='btn btn-sm btn-primary';b.textContent='📋 Tichetele mele (activ)';} },100); }
 function filterExternsAndGo() { navTo('tickets'); setTimeout(()=>{ const e=document.getElementById('f-client'); if(e){e.value='extern';filterAdminTickets();} },100); }
+function filterStatusAndGo(status) { navTo('tickets'); setTimeout(()=>{ const e=document.getElementById('f-status'); if(e){e.value=status;filterAdminTickets();} },100); }
 
 // ============================================================
 // ADMIN COMPANIES
