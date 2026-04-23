@@ -505,7 +505,7 @@ body.dark-mode [style*="linear-gradient(135deg,#d1fae5"]{background:linear-gradi
 <div id="page-login">
   <div class="login-box">
     <div class="login-logo">
-      <img id="login-logo-img" class="login-logo-img" alt="Shanti Expert">
+      <img id="login-logo-img" class="login-logo-img" src="./logo.png" alt="Shanti Expert">
       <div class="login-logo-title">Shanti Expert</div>
       <div class="login-logo-sub">Sistem de Ticketing IT</div>
     </div>
@@ -564,7 +564,7 @@ body.dark-mode [style*="linear-gradient(135deg,#d1fae5"]{background:linear-gradi
   <div class="topbar">
     <div class="topbar-logo">
       <button class="mobile-menu-toggle" onclick="toggleMobileSidebar()" aria-label="Meniu">☰</button>
-      <img id="topbar-logo-img" class="topbar-logo-img" alt="SE">
+      <img id="topbar-logo-img" class="topbar-logo-img" src="./logo.png" alt="SE">
       <div>
         <div class="topbar-title">Shanti Expert</div>
         <div class="topbar-subtitle" id="topbar-company">Sistem de Ticketing IT</div>
@@ -2079,7 +2079,8 @@ function openTicketDetail(id) {
         </div>
       </div>`;
     })()}
-    ${isAdmin && t.module==='suport' && t.status!=='Rezolvat'?`<hr class="section-divider" style="margin-top:20px"><div style="background:#ffedd5;border:1px solid #fed7aa;border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div style="font-size:12px;color:#9a3412"><strong>🛒 Convertește în cerere de Achiziții IT</strong><br>Dacă utilizatorul a descris o achiziție (echipament, licență, etc.) în loc de o problemă tehnică, poți transforma tichetul păstrând tot istoricul.</div><button class="btn btn-warning btn-sm" onclick="openConvertToAchizitii('${id}')">➔ Convertește în Achiziții</button></div>`:''}
+    ${isAdmin && t.module==='suport' && t.status!=='Rezolvat' && !t.isExternal?`<hr class="section-divider" style="margin-top:20px"><div style="background:#ffedd5;border:1px solid #fed7aa;border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div style="font-size:12px;color:#9a3412"><strong>🛒 Convertește în cerere de Achiziții IT</strong><br>Dacă utilizatorul a descris o achiziție (echipament, licență, etc.) în loc de o problemă tehnică, poți transforma tichetul păstrând tot istoricul.</div><button class="btn btn-warning btn-sm" onclick="openConvertToAchizitii('${id}')">➔ Convertește în Achiziții</button></div>`:''}
+    ${isAdmin && t.isExternal?`<hr class="section-divider" style="margin-top:20px"><div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div style="font-size:12px;color:#991b1b"><strong>🌐 Client extern</strong><br>Dacă această persoană lucrează, de fapt, la una dintre firmele tale cliente, poți muta contul în acea firmă. Istoricul se păstrează.</div><button class="btn btn-sm" style="background:#fff;border:1px solid #fca5a5;color:#991b1b" onclick="openMoveExternalToCompany('${id}')">🔄 Mută în firmă existentă</button></div>`:''}
     ${isSuper?`<hr class="section-divider" style="margin-top:20px"><div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div style="font-size:12px;color:#78350f"><strong>🛡 Acțiuni super-administrator</strong><br>Ștergerea tichetului este ireversibilă.</div><button class="btn btn-danger btn-sm" onclick="deleteTicket('${id}')">🗑 Șterge tichet</button></div>`:''}
   </div></div>`);
   setTimeout(()=>{ initAutoExpand('new-comment'); initAutoExpand('new-internal-note'); }, 80);
@@ -2162,6 +2163,82 @@ function convertTicketToAchizitii(id) {
   if (currentPage==='tickets') renderAdminTickets();
   else if (currentPage==='dashboard') renderAdminDashboard();
   setTimeout(()=>openTicketDetail(id), 400);
+}
+
+// ============================================================
+// MUTĂ CLIENT EXTERN ÎN FIRMĂ EXISTENTĂ
+// ============================================================
+function openMoveExternalToCompany(ticketId) {
+  const t = getTickets().find(x => x.id === ticketId); if (!t) return;
+  if (!t.isExternal) { showToast('Acest client nu este extern.','error'); return; }
+  const companies = getCompanies().map(c => c.name).filter(n => n && n !== t.userCompany);
+  showModal(`<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal" style="width:520px">
+    <div class="modal-header">
+      <div><div class="modal-title">🔄 Mută în firmă existentă</div>
+      <div style="font-size:11px;color:#5a6a7e;margin-top:3px">Utilizator: ${escapeHtml(t.userName)} · ${escapeHtml(t.userEmail||'')}</div></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="info-msg" style="margin-bottom:14px">
+      Utilizatorul devine <strong>intern</strong> în firma selectată. Tichetele vechi (EXT-...) își păstrează ID-ul, dar <strong>badge-ul „CLIENT EXTERN" dispare</strong> de pe toate (vechi și noi). Tichetele viitoare primesc prefix normal al firmei.
+    </div>
+    <div id="move-err" class="error-msg hidden"></div>
+    <div class="form-group">
+      <label>Firma destinație *</label>
+      <select id="move-company">
+        <option value="">— Selectează firma —</option>
+        ${companies.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Funcție în firmă (opțional)</label>
+      <input id="move-function" placeholder="ex: Contabil, Administrator, etc.">
+    </div>
+    <div class="form-group">
+      <label>Notă (opțional — apare ca mesaj de sistem pe tichetele lui)</label>
+      <textarea id="move-note" rows="2" placeholder="ex: Confirmat telefonic că lucrează la SC Albright SRL ca administrator."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Anulează</button>
+      <button class="btn btn-primary" onclick="confirmMoveExternalToCompany('${ticketId}')">🔄 Mută</button>
+    </div>
+  </div></div>`);
+}
+function confirmMoveExternalToCompany(ticketId) {
+  const err = document.getElementById('move-err');
+  const newCompany = document.getElementById('move-company').value;
+  const newFunction = document.getElementById('move-function').value.trim();
+  const note = document.getElementById('move-note').value.trim();
+  if (!newCompany) { err.textContent='Selectează firma destinație.'; err.classList.remove('hidden'); return; }
+  const t = getTickets().find(x => x.id === ticketId); if (!t) return;
+  const users = getUsers();
+  const uidx = users.findIndex(u => u.id === t.userId);
+  if (uidx < 0) { err.textContent='Contul utilizatorului nu a fost găsit.'; err.classList.remove('hidden'); return; }
+  // Actualizez user
+  users[uidx].company = newCompany;
+  users[uidx].isExternal = false;
+  if (newFunction) users[uidx].function = newFunction;
+  users[uidx].movedFromExternalAt = Date.now();
+  users[uidx].movedBy = currentUser.name || currentUser.email;
+  saveUsers(users);
+  // Actualizez TOATE tichetele acestui user — eliminat flag extern + actualizat firma
+  const tickets = getTickets();
+  const systemNote = `🔄 Contul a fost mutat din „Client extern" în firma "${newCompany}" de ${currentUser.name||currentUser.email}.${note?' Notă: '+note:''}`;
+  tickets.forEach(x => {
+    if (x.userId === t.userId) {
+      x.isExternal = false;
+      x.userCompany = newCompany;
+      if (!Array.isArray(x.comments)) x.comments = [];
+      x.comments.push({ id:'c'+Date.now()+Math.random(), author:currentUser.name||currentUser.email,
+        text: systemNote, date: Date.now(), isAdmin: true, isSystem: true });
+      x.updatedAt = Date.now();
+    }
+  });
+  saveTickets(tickets);
+  closeModal();
+  showToast(`Utilizator mutat în „${newCompany}". Badge-ul CLIENT EXTERN a fost eliminat de pe tichetele lui.`, 'success');
+  if (currentPage==='tickets') renderAdminTickets();
+  else if (currentPage==='dashboard') renderAdminDashboard();
+  setTimeout(()=>openTicketDetail(ticketId), 400);
 }
 
 function updateTicketStatus(id, newStatus) {
@@ -2327,6 +2404,7 @@ function renderAdminDashboard() {
       <div class="stat-card"><div class="stat-label">Deschise</div><div class="stat-value">${s.open}</div></div>
       <div class="stat-card amber"><div class="stat-label">În lucru</div><div class="stat-value">${s.inlucru}</div></div>
       <div class="stat-card purple"><div class="stat-label">Pending validare</div><div class="stat-value">${s.pending}</div></div>
+      <div class="stat-card red" onclick="filterExternsAndGo()" style="cursor:pointer" title="Click pentru a filtra tichetele clienților externi"><div class="stat-label">🌐 Clienți externi</div><div class="stat-value">${tickets.filter(t=>t.isExternal&&t.status!=='Rezolvat').length}</div></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
       <div class="card" style="margin-bottom:0">
@@ -2370,6 +2448,7 @@ function renderAdminDashboard() {
 function filterPendingAndGo() { navTo('tickets'); setTimeout(()=>{ const e=document.getElementById('f-status'); if(e){e.value='__pending__';filterAdminTickets();} },100); }
 function filterUnreadAndGo() { navTo('tickets'); setTimeout(()=>{ const e=document.getElementById('f-status'); if(e){e.value='__unread__';filterAdminTickets();} },100); }
 function filterMyAndGo() { navTo('tickets'); setTimeout(()=>{ adminTicketsMyOnly=true; filterAdminTickets(); const b=document.getElementById('btn-my-tickets'); if(b){b.className='btn btn-sm btn-primary';b.textContent='📋 Tichetele mele (activ)';} },100); }
+function filterExternsAndGo() { navTo('tickets'); setTimeout(()=>{ const e=document.getElementById('f-client'); if(e){e.value='extern';filterAdminTickets();} },100); }
 
 // ============================================================
 // ADMIN COMPANIES
@@ -2757,6 +2836,8 @@ function renderAdminTickets() {
         <div><label>Asignat la</label><select id="f-assigned" onchange="filterAdminTickets()" style="width:150px">
           <option value="">Toți</option><option value="__none__">Neasignat</option>
           ${admins.map(a=>`<option value="${a.id}">${a.name||a.email}</option>`).join('')}</select></div>
+        <div><label>Client</label><select id="f-client" onchange="filterAdminTickets()" style="width:130px">
+          <option value="">Toți</option><option value="intern">🏢 Intern</option><option value="extern">🌐 Extern</option></select></div>
         <div style="align-self:flex-end;display:flex;gap:6px"><button class="btn btn-secondary btn-sm" onclick="resetAdminFilters()">Resetează</button><button class="btn btn-secondary btn-sm" onclick="exportAdminTickets()">⬇ Export CSV</button></div>
       </div>
       <div id="admin-tickets-table">${renderAdminTicketsTable(filterTicketsForAdmin(getTickets(), currentUser))}</div>
@@ -2781,12 +2862,15 @@ function filterAdminTickets() {
   if (priority) tickets=tickets.filter(t=>t.priority===priority);
   if (assigned==='__none__') tickets=tickets.filter(t=>!t.assignedAdminId);
   else if (assigned) tickets=tickets.filter(t=>t.assignedAdminId===assigned);
+  const client=document.getElementById('f-client')?.value||'';
+  if (client==='extern') tickets=tickets.filter(t=>t.isExternal);
+  else if (client==='intern') tickets=tickets.filter(t=>!t.isExternal);
   if (adminTicketsMyOnly) tickets=tickets.filter(t=>t.assignedAdminId===currentUser.id);
   document.getElementById('admin-tickets-table').innerHTML=renderAdminTicketsTable(tickets);
 }
 function resetAdminFilters() {
   adminTicketsMyOnly=false;
-  ['f-company','f-module','f-status','f-priority','f-assigned'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
+  ['f-company','f-module','f-status','f-priority','f-assigned','f-client'].forEach(id=>{ const e=document.getElementById(id); if(e) e.value=''; });
   const btn=document.getElementById('btn-my-tickets'); if(btn){btn.className='btn btn-sm btn-secondary';btn.textContent='📋 Tichetele mele';}
   filterAdminTickets();
 }
@@ -2806,13 +2890,16 @@ function exportAdminTickets() {
   if (priority) tickets = tickets.filter(t=>t.priority===priority);
   if (assigned === '__none__') tickets = tickets.filter(t=>!t.assignedAdminId);
   else if (assigned) tickets = tickets.filter(t=>t.assignedAdminId===assigned);
+  const client=document.getElementById('f-client')?.value||'';
+  if (client==='extern') tickets=tickets.filter(t=>t.isExternal);
+  else if (client==='intern') tickets=tickets.filter(t=>!t.isExternal);
   if (adminTicketsMyOnly) tickets = tickets.filter(t=>t.assignedAdminId===currentUser.id);
 
-  let csv = '\uFEFFID,Firma,Modul,Titlu,Prioritate,Status,Asignat,Data creare,Data rezolvare,Utilizator,Email utilizator,Categorie\n';
+  let csv = '\uFEFFID,Firma,Tip client,Modul,Titlu,Prioritate,Status,Asignat,Data creare,Data rezolvare,Utilizator,Email utilizator,Categorie\n';
   tickets.forEach(t => {
     const esc = s => `"${(s||'').toString().replace(/"/g,'""')}"`;
     csv += [
-      t.id, esc(t.userCompany), t.module==='suport'?'Suport IT':'Achizitii IT',
+      t.id, esc(t.userCompany), t.isExternal?'Extern':'Intern', t.module==='suport'?'Suport IT':'Achizitii IT',
       esc(t.title), t.priority, esc(t.status), esc(t.assignedAdminName||''),
       esc(fmtDate(t.createdAt)), esc(fmtDate(t.closedAt)),
       esc(t.userName), esc(t.userEmail||''), esc(t.category||'')
@@ -3728,4 +3815,7 @@ initData();
 showLoginPage();
 // Set login logo after page loads
 const _loginLogo = document.getElementById('login-logo-img');
-if (_loginLogo) { _
+if (_loginLogo) { _loginLogo.src = LOGO_SRC; _loginLogo.onerror = () => { _loginLogo.onerror = null; _loginLogo.src = LOGO_FALLBACK; }; }
+</script>
+</body>
+</html>
