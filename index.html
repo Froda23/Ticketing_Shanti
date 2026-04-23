@@ -1047,6 +1047,7 @@ function buildSidebar() {
       <div class="sidebar-item" id="nav-tickets" onclick="navTo('tickets')">${ico.tickets} Toate Tichetele${(()=>{const u=filterTicketsForAdmin(getTickets(),currentUser).filter(t=>t.unreadForAdmin).length;return u>0?` <span style="background:#f59e0b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:4px">${u}</span>`:'';})()}</div>
       <div class="sidebar-item" id="nav-reports" onclick="navTo('reports')">${ico.reports} Rapoarte</div>
       ${isSuperAdmin(currentUser)?`<div class="sidebar-item" id="nav-automations" onclick="navTo('automations')">🤖 Automatizări</div>`:''}
+      ${isSuperAdmin(currentUser)?`<div class="sidebar-item" id="nav-backup" onclick="navTo('backup')">💾 Backup &amp; Restore</div>`:''}
       <div class="sidebar-item" id="nav-profile" onclick="navTo('profile')">${ico.profile} Profilul meu</div>
       </div>`;
   } else {
@@ -1065,7 +1066,7 @@ function navTo(page) {
   const pages = { dashboard: isAdminRole(currentUser)?renderAdminDashboard:renderUserDashboard,
     companies:renderAdminCompanies, users:renderAdminUsers, admins:renderAdminAdmins,
     tickets:renderAdminTickets, suport:renderSupportIT, achizitii:renderAchizitiiIT, profile:renderProfile, reports:renderAdminReports,
-    automations:renderAutomations };
+    automations:renderAutomations, backup:renderBackup };
   if (pages[page]) pages[page]();
   // Pe mobil, închide sidebar-ul după navigație
   toggleMobileSidebar(false);
@@ -2427,6 +2428,9 @@ function renderAdminDashboard() {
           <button class="btn btn-secondary" style="justify-content:flex-start" onclick="filterPendingAndGo()">⏳ Tichete Pending (${s.pending})</button>
           <button class="btn btn-secondary" style="justify-content:flex-start" onclick="filterMyAndGo()">📋 Tichetele mele</button>
           <button class="btn btn-secondary" style="justify-content:flex-start" onclick="navTo('reports')">📊 Rapoarte & analize</button>
+		  <hr style="border:none;border-top:1px solid #e2eaf3;margin:4px 0">
+		  <button class="btn btn-secondary" style="justify-content:flex-start" onclick="exportAllData()">💾 Backup date (JSON)</button>
+		  <button class="btn btn-secondary" style="justify-content:flex-start" onclick="importAllData()">📥 Restaurează backup</button>
         </div>
       </div>
     </div>
@@ -3390,6 +3394,143 @@ function renderAutomations() {
     </div>`).join('')}
   </div>`;
 }
+
+// ============================================================
+// BACKUP & RESTORE — export/import complet localStorage (se_* keys)
+// ============================================================
+function renderBackup() {
+  const content = document.getElementById('content');
+  if (!isSuperAdmin(currentUser)) {
+    content.innerHTML = '<div class="card"><p style="color:#991b1b">⛔ Accesul la Backup &amp; Restore este rezervat super-administratorului.</p></div>';
+    return;
+  }
+  // Stats pentru afișare
+  const keys = [];
+  for (let i=0; i<localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('se_')) keys.push(k);
+  }
+  const users = getUsers().length;
+  const companies = (LS.load('companies')||[]).length;
+  const tickets = getTickets().length;
+  const totalBytes = keys.reduce((s,k)=>s+(localStorage.getItem(k)||'').length, 0);
+  const totalKB = (totalBytes/1024).toFixed(1);
+  const lastBackup = LS.load('last_backup_at');
+  const lastRestore = LS.load('last_restore_at');
+  content.innerHTML = `<div class="page-header">
+    <div class="page-header-left">
+      <div class="page-title">💾 Backup &amp; Restore</div>
+      <div class="page-subtitle">Exportă toate datele aplicației într-un fișier JSON (firme, utilizatori, tichete, setări). Restaurează dintr-un backup salvat anterior.</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:18px">
+    <div style="font-size:14px;color:#1a2332;font-weight:600;margin-bottom:12px">📊 Starea curentă a datelor</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px">
+      <div style="background:#f3f6fa;padding:12px;border-radius:8px"><div style="font-size:11px;color:#5a6a7e;text-transform:uppercase;letter-spacing:.5px">Chei localStorage</div><div style="font-size:22px;font-weight:700;color:#1a2332">${keys.length}</div></div>
+      <div style="background:#f3f6fa;padding:12px;border-radius:8px"><div style="font-size:11px;color:#5a6a7e;text-transform:uppercase;letter-spacing:.5px">Firme</div><div style="font-size:22px;font-weight:700;color:#1a2332">${companies}</div></div>
+      <div style="background:#f3f6fa;padding:12px;border-radius:8px"><div style="font-size:11px;color:#5a6a7e;text-transform:uppercase;letter-spacing:.5px">Utilizatori</div><div style="font-size:22px;font-weight:700;color:#1a2332">${users}</div></div>
+      <div style="background:#f3f6fa;padding:12px;border-radius:8px"><div style="font-size:11px;color:#5a6a7e;text-transform:uppercase;letter-spacing:.5px">Tichete</div><div style="font-size:22px;font-weight:700;color:#1a2332">${tickets}</div></div>
+      <div style="background:#f3f6fa;padding:12px;border-radius:8px"><div style="font-size:11px;color:#5a6a7e;text-transform:uppercase;letter-spacing:.5px">Dimensiune</div><div style="font-size:22px;font-weight:700;color:#1a2332">${totalKB} KB</div></div>
+    </div>
+    <div style="font-size:12px;color:#8a9bb0">
+      ${lastBackup?`📤 Ultimul backup descărcat: <strong style="color:#2d7a3a">${new Date(lastBackup).toLocaleString('ro-RO')}</strong>`:'📤 Niciun backup descărcat încă.'}
+      ${lastRestore?`<br>📥 Ultima restaurare: <strong style="color:#2d7a3a">${new Date(lastRestore).toLocaleString('ro-RO')}</strong>`:''}
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:18px">
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;color:#1a2332;margin-bottom:8px">📤 Descarcă backup</div>
+      <div style="font-size:13px;color:#5a6a7e;margin-bottom:14px;line-height:1.5">
+        Salvează pe disk un fișier JSON cu <strong>toate datele</strong> aplicației (firme, utilizatori, tichete, comentarii, atașamente, setări). Folosește-l când:
+        <ul style="margin:8px 0 0 18px;padding:0;font-size:12px">
+          <li>Faci o modificare mare și vrei o plasă de siguranță.</li>
+          <li>Muți aplicația pe alt URL (ex: de pe <code>file://</code> pe GitHub Pages).</li>
+          <li>Schimbi browserul sau calculatorul.</li>
+        </ul>
+      </div>
+      <button class="btn btn-primary" onclick="doBackupExport()" style="width:100%">💾 Descarcă backup complet</button>
+    </div>
+    <div class="card">
+      <div style="font-size:15px;font-weight:600;color:#1a2332;margin-bottom:8px">📥 Restaurează din backup</div>
+      <div style="font-size:13px;color:#5a6a7e;margin-bottom:14px;line-height:1.5">
+        Încarcă un fișier JSON salvat anterior. <strong style="color:#991b1b">⚠ Atenție:</strong> datele curente vor fi înlocuite complet cu cele din backup. Aplicația se reîncarcă după restaurare.
+      </div>
+      <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="doBackupRestore(event)">
+      <button class="btn btn-secondary" onclick="document.getElementById('restore-file-input').click()" style="width:100%">📂 Alege fișier JSON și restaurează</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:18px;background:#fef9e7;border:1px solid #f59e0b">
+    <div style="font-size:13px;color:#78350f;line-height:1.6">
+      <strong>ℹ Despre stocarea datelor:</strong> Aplicația rulează doar în browser și folosește <code>localStorage</code> pentru persistență. Asta înseamnă că <strong>datele sunt per-browser / per-URL / per-calculator</strong> — nu se sincronizează automat nicăieri. Fă backup periodic (săptămânal minim), iar pentru producție reală recomandăm migrarea pe un backend cu bază de date.
+    </div>
+  </div>`;
+}
+
+function doBackupExport() {
+  try {
+    const backup = { __meta: { version: 1, exportedAt: new Date().toISOString(), app: 'Shanti Expert Ticketing' }, data: {} };
+    for (let i=0; i<localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('se_')) backup.data[k] = localStorage.getItem(k);
+    }
+    const keyCount = Object.keys(backup.data).length;
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const stamp = new Date().toISOString().slice(0,10) + '_' + new Date().toTimeString().slice(0,5).replace(':','-');
+    a.download = 'shanti_backup_' + stamp + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    LS.save('last_backup_at', Date.now());
+    showToast(`✅ Backup descărcat: ${keyCount} chei, ${(blob.size/1024).toFixed(1)} KB`, 'success');
+    renderBackup();
+  } catch (e) {
+    console.error('Backup failed:', e);
+    showToast('❌ Eroare la backup: ' + e.message, 'error');
+  }
+}
+
+function doBackupRestore(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      // Accept both new format ({__meta, data}) and plain {se_*: ...} format
+      const data = parsed.data && typeof parsed.data === 'object' ? parsed.data : parsed;
+      const keys = Object.keys(data).filter(k => k.startsWith('se_'));
+      if (keys.length === 0) { showToast('❌ Fișierul nu conține date valide (nicio cheie se_*).', 'error'); return; }
+      const meta = parsed.__meta;
+      const metaInfo = meta ? `\n\nBackup exportat la: ${new Date(meta.exportedAt).toLocaleString('ro-RO')}` : '';
+      const confirmMsg = `⚠ ATENȚIE: Vei înlocui TOATE datele curente ale aplicației cu datele din acest fișier.\n\nFișier: ${file.name}\nChei detectate: ${keys.length}${metaInfo}\n\nCurent ai:\n• ${getUsers().length} utilizatori\n• ${(LS.load('companies')||[]).length} firme\n• ${getTickets().length} tichete\n\nContinui? Această acțiune NU poate fi anulată (dar datele curente sunt încă în backup-ul anterior dacă ai făcut unul).`;
+      if (!confirm(confirmMsg)) { document.getElementById('restore-file-input').value = ''; return; }
+      // Ștergem toate cheile se_* existente
+      const toRemove = [];
+      for (let i=0; i<localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('se_')) toRemove.push(k);
+      }
+      toRemove.forEach(k => localStorage.removeItem(k));
+      // Scriem cheile din backup
+      keys.forEach(k => localStorage.setItem(k, data[k]));
+      LS.save('last_restore_at', Date.now());
+      showToast(`✅ ${keys.length} chei restaurate. Aplicația se reîncarcă...`, 'success');
+      setTimeout(() => location.reload(), 1200);
+    } catch (err) {
+      console.error('Restore failed:', err);
+      showToast('❌ Eroare la restaurare: ' + err.message, 'error');
+      document.getElementById('restore-file-input').value = '';
+    }
+  };
+  reader.onerror = function() {
+    showToast('❌ Nu s-a putut citi fișierul.', 'error');
+  };
+  reader.readAsText(file);
+}
+
 // Timer global pentru motor — pornit la login, oprit la logout
 let __autoInterval = null;
 function startAutoEngine() {
@@ -3811,6 +3952,32 @@ function exportCSV(type) {
 // ============================================================
 // INIT
 // ============================================================
+function exportAllData() {
+  const data = {};
+  ['users','companies','allowed_emails','tickets','ticket_counters','macros','initialized']
+    .forEach(k => { const v = localStorage.getItem('se_'+k); if(v) data['se_'+k]=v; });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));
+  a.download = 'shanti_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  showToast('Backup exportat!','success');
+}
+function importAllData() {
+  const input = document.createElement('input'); input.type='file'; input.accept='.json';
+  input.onchange = e => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        Object.entries(data).forEach(([k,v]) => { if(k.startsWith('se_')) localStorage.setItem(k,v); });
+        showToast('Import reușit! Pagina se reîncarcă...','success');
+        setTimeout(()=>location.reload(), 1500);
+      } catch { showToast('Fișier invalid.','error'); }
+    };
+    reader.readAsText(e.target.files[0]);
+  };
+  input.click();
+}
 initData();
 showLoginPage();
 // Set login logo after page loads
