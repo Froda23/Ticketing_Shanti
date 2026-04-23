@@ -34,7 +34,7 @@ label{font-size:12px;color:#5a6a7e;margin-bottom:4px;display:block;font-weight:5
 .badge-waiting-approval{background:#fdf4ff;color:#86198f;border:1px solid #e9d5ff}
 .badge-bell{background:#fef3c7;color:#b45309;border:1px solid #fbbf24;font-weight:600;animation:bellPulse 2s ease-in-out infinite}
 @keyframes bellPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-.assign-badge{display:inline-flex;align-items:center;background:#f3e8ff;color:#6d28d9;border:1px solid #c4b5fd;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;white-space:nowrap}
+.assign-badge{display:inline-flex;align-items:center;background:#f3e8ff;color:#6d28d9;border:1px solid #c4b5fd;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:600;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
 .assign-badge.unassigned{background:#f1f5f9;color:#94a3b8;border-color:#e2eaf3;font-weight:400}
 #app{min-height:100vh;display:flex;flex-direction:column}
 .topbar{background:#fff;color:#2A0070;padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 4px rgba(26,0,80,.1);border-bottom:1px solid #e2eaf3}
@@ -87,8 +87,8 @@ tr:hover td{background:#faf5ff}
 .back-link{font-size:12px;color:#3E0188;cursor:pointer;margin-top:14px;text-align:center;display:block;font-weight:500}
 .back-link:hover{text-decoration:underline}
 .priority-low{color:#475569;background:#f1f5f9;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:500;border:1px solid #e2e8f0}
-.priority-medium{color:#475569;background:#f1f5f9;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:500;border:1px solid #e2e8f0}
-.priority-high{color:#475569;background:#f1f5f9;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:500;border:1px solid #e2e8f0}
+.priority-medium{color:#92400e;background:#fef3c7;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:500;border:1px solid #fde68a}
+.priority-high{color:#991b1b;background:#fee2e2;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:500;border:1px solid #fca5a5}
 .th-sort{cursor:pointer;user-select:none}
 .th-sort:hover{background:#f1f5f9}
 .th-sort-active{color:#3E0188;background:#faf7ff}
@@ -259,7 +259,9 @@ body.dark-mode .login-tab.active{background:#3E0188;color:#fff}
 body.dark-mode .error-msg{background:#450a0a;color:#fca5a5;border-color:#7f1d1d}
 body.dark-mode .success-msg{background:#064e3b;color:#6ee7b7;border-color:#065f46}
 body.dark-mode .info-msg{background:#2e1065;color:#c4b5fd;border-color:#4c1d95}
-body.dark-mode .priority-low,body.dark-mode .priority-medium,body.dark-mode .priority-high{background:#334155;color:#cbd5e1;border-color:#475569}
+body.dark-mode .priority-low{background:#334155;color:#cbd5e1;border-color:#475569}
+body.dark-mode .priority-medium{background:#422006;color:#fcd34d;border-color:#b45309}
+body.dark-mode .priority-high{background:#450a0a;color:#fca5a5;border-color:#7f1d1d}
 body.dark-mode .modal{background:#1e293b;color:#e2e8f0;border-color:#334155;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 body.dark-mode .modal-title,body.dark-mode .modal-header{color:#e2e8f0}
 body.dark-mode .comment-box{background:#0f172a;border-color:#334155;color:#e2e8f0}
@@ -438,14 +440,17 @@ body.dark-mode [style*="linear-gradient(135deg,#d1fae5"]{background:linear-gradi
   .page-title{font-size:18px}
   .page-subtitle{font-size:11px}
   /* TABLE → CARDS pe mobil */
-  .table-wrap{overflow:visible}
+  .table-wrap{overflow-x:auto}
   table,thead,tbody,th,td,tr{display:block}
   thead{display:none} /* ascundem headerele în mobile — folosim data-label */
-  tr{background:#fff;border:1px solid #e2eaf3;border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  tr{background:#fff;border:1px solid #e2eaf3;border-radius:10px;padding:12px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.05);width:100%;box-sizing:border-box}
   tr:hover td{background:transparent}
-  td{border:none;padding:5px 0;white-space:normal!important;max-width:none!important;overflow:visible!important;text-overflow:initial!important;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  td{border:none;padding:5px 0;white-space:normal!important;max-width:none!important;overflow:hidden!important;text-overflow:initial!important;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;width:100%;box-sizing:border-box;word-break:break-word}
   td:before{content:attr(data-label);font-size:11px;color:#8a9bb0;font-weight:600;text-transform:uppercase;letter-spacing:.4px;flex-shrink:0}
   td:first-child:before{content:''}
+  /* Filtre admin — selects responsive pe mobile */
+  #f-company,#f-module,#f-status,#f-priority,#f-assigned,#f-client{width:calc(50vw - 40px)!important;max-width:160px!important}
+  .content{overflow-x:hidden}
   body.dark-mode tr{background:#1e293b;border-color:#334155}
   /* Card-uri — mai puțin padding */
   .card{padding:14px;margin-bottom:12px}
@@ -479,6 +484,9 @@ body.dark-mode [style*="linear-gradient(135deg,#d1fae5"]{background:linear-gradi
   .login-box{width:min(400px,95vw);padding:24px 20px 28px}
   .login-logo-img{max-width:160px;max-height:72px}
   .login-logo-title{font-size:17px}
+  table{min-width:0!important}
+  /* Coloane redundante — ascunse pe mobil pentru utilizatori */
+  .user-table-hide-mobile{display:none!important}
 }
 @media (max-width:480px){
   .topbar{padding:0 8px}
@@ -747,7 +755,7 @@ function openExternalRegister() {
     <div class="form-group" style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:10px 12px">
       <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;margin-bottom:0">
         <input type="checkbox" id="ext-gdpr" style="margin-top:3px;flex-shrink:0">
-        <span style="font-size:12px;color:#78350f;line-height:1.5">Sunt de acord cu prelucrarea datelor mele de contact (nume, email, telefon, firmă) pentru a primi asistență tehnică de la Shanti Expert. Datele sunt folosite exclusiv în scopul gestionării tichetului meu și nu sunt transmise către terți. *</span>
+        <span style="font-size:12px;color:#78350f;line-height:1.5;flex:1;min-width:0;word-break:break-word">Sunt de acord cu prelucrarea datelor mele de contact (nume, email, telefon, firmă) pentru a primi asistență tehnică de la Shanti Expert. Datele sunt folosite exclusiv în scopul gestionării tichetului meu și nu sunt transmise către terți. *</span>
       </label>
     </div>
     <div class="modal-footer">
@@ -1294,10 +1302,10 @@ function renderProfileComplete() {
           <div class="form-group"><label>Nume *</label><input id="p-lname" placeholder="Popescu"></div>
         </div>
         <div class="two-col">
-          <div class="form-group"><label>Funcție *</label><input id="p-func" placeholder="ex: Contabil Senior"></div>
+          <div class="form-group"><label>Funcție</label><input id="p-func" placeholder="ex: Contabil Senior"></div>
           <div class="form-group"><label>Telefon *</label><input id="p-phone" placeholder="+40 7XX XXX XXX"></div>
         </div>
-        <div class="form-group"><label>Adresă AnyDesk</label><input id="p-anydesk" placeholder="ex: 123 456 789"></div>
+        <div class="form-group"><label>ID AnyDesk *</label><input id="p-anydesk" placeholder="ex: 123 456 789"></div>
         <button class="btn btn-primary" style="width:100%;padding:10px;font-size:14px;margin-top:4px" onclick="saveProfileComplete()">Salvează și intră în aplicație</button>
       </div>
     </div>`;
@@ -1306,7 +1314,7 @@ function saveProfileComplete() {
   const fname=document.getElementById('p-fname').value.trim(), lname=document.getElementById('p-lname').value.trim();
   const func=document.getElementById('p-func').value.trim(), phone=document.getElementById('p-phone').value.trim();
   const anydesk=document.getElementById('p-anydesk').value.trim();
-  if (!fname||!lname||!func||!phone) { document.getElementById('profile-err').textContent='Completează câmpurile obligatorii (*).'; document.getElementById('profile-err').classList.remove('hidden'); return; }
+  if (!fname||!lname||!phone||!anydesk) { document.getElementById('profile-err').textContent='Completează câmpurile obligatorii (*).'; document.getElementById('profile-err').classList.remove('hidden'); return; }
   const users=getUsers(); const idx=users.findIndex(u=>u.id===currentUser.id); if (idx<0) return;
   users[idx].name=fname+' '+lname; users[idx].function=func; users[idx].phone=phone; users[idx].anydesk=anydesk; users[idx].needsProfile=false;
   saveUsers(users); currentUser=users[idx]; launchApp();
@@ -1342,13 +1350,13 @@ function renderUserDashboard() {
         </div>
       </div>
       ${myT.length===0?'<p style="color:#5a6a7e;font-size:13px;text-align:center;padding:32px 0">Nu ai niciun tichet postat încă.<br>Folosește modulele din meniu pentru a posta cereri.</p>':
-      `<div class="table-wrap"><table><thead><tr><th>ID</th><th>Titlu</th><th>Modul</th><th>Prioritate</th><th>Status</th><th>Data</th></tr></thead><tbody>
+      `<div class="table-wrap"><table><thead><tr><th>ID</th><th>Titlu</th><th class="user-table-hide-mobile">Modul</th><th class="user-table-hide-mobile">Prioritate</th><th>Status</th><th class="user-table-hide-mobile">Data</th></tr></thead><tbody>
       ${myT.slice().reverse().slice(0,8).map(t=>`<tr class="ticket-row" onclick="openTicketDetail('${t.id}')" style="${t.unreadForUser?'background:#fffbeb':''}">
-        <td><span style="font-family:monospace;color:#3E0188;font-weight:600">${t.id}</span></td>
-        <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.unreadForUser?'<span style=\'color:#d97706;font-weight:700;margin-right:4px\' title=\'Mesaj nou de la suport\'>●</span>':''}${t.title}</td>
-        <td>${t.module==='suport'?'<span class="badge badge-blue">Suport IT</span>':'<span class="badge badge-orange-fade">Achiziții IT</span>'}</td>
-        <td>${priorityBadge(t.priority)}</td><td>${ticketStatusBadge(t,false)}</td>
-        <td style="white-space:nowrap;color:#5a6a7e">${fmtDate(t.createdAt)}</td>
+        <td data-label="ID"><span style="font-family:monospace;color:#3E0188;font-weight:600">${t.id}</span></td>
+        <td data-label="Titlu" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.unreadForUser?'<span style=\'color:#d97706;font-weight:700;margin-right:4px\' title=\'Mesaj nou de la suport\'>●</span>':''}${t.title}</td>
+        <td data-label="Modul">${t.module==='suport'?'<span class="badge badge-blue">Suport IT</span>':'<span class="badge badge-orange-fade">Achiziții IT</span>'}</td>
+        <td data-label="Prioritate">${priorityBadge(t.priority)}</td><td data-label="Status">${ticketStatusBadge(t,false)}</td>
+        <td data-label="Data" style="white-space:nowrap;color:#5a6a7e">${fmtDate(t.createdAt)}</td>
       </tr>`).join('')}</tbody></table></div>`}
     </div>`;
 }
@@ -2440,12 +2448,12 @@ function renderAdminDashboard() {
       ${tickets.length===0?'<p style="color:#5a6a7e;font-size:13px;text-align:center;padding:32px 0">Niciun tichet postat încă.</p>':
       `<div class="table-wrap"><table><thead><tr><th>ID</th><th>Titlu</th><th>Utilizator</th><th>Firmă</th><th>Modul</th><th>Prioritate</th><th>Status</th><th>Asignat</th></tr></thead><tbody>
       ${tickets.slice().sort(defaultTicketSortCmp).slice(0,8).map(t=>`<tr class="ticket-row" onclick="openTicketDetail('${t.id}')" style="${t.unreadForAdmin?'background:#fffbeb':''}">
-        <td><span style="font-family:monospace;color:#3E0188;font-weight:600">${t.id}</span></td>
-        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.unreadForAdmin?'<span style=\'color:#d97706;font-weight:700;margin-right:4px\' title=\'Activitate nouă\'>●</span>':''}${t.title}</td>
-        <td>${t.userName}</td><td>${t.userCompany}</td>
-        <td>${t.module==='suport'?'<span class="badge badge-blue">Suport IT</span>':'<span class="badge badge-orange-fade">Achiziții IT</span>'}</td>
-        <td>${priorityBadge(t.priority)}</td><td>${ticketStatusBadge(t, true)}</td>
-        <td>${t.assignedAdminName?`<span class="assign-badge">${t.assignedAdminName}</span>`:'<span class="assign-badge unassigned">Neasignat</span>'}</td>
+        <td data-label="ID"><span style="font-family:monospace;color:#3E0188;font-weight:600">${t.id}</span></td>
+        <td data-label="Titlu" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.unreadForAdmin?'<span style=\'color:#d97706;font-weight:700;margin-right:4px\' title=\'Activitate nouă\'>●</span>':''}${t.title}</td>
+        <td data-label="Utilizator">${t.userName}</td><td data-label="Firmă">${t.userCompany}</td>
+        <td data-label="Modul">${t.module==='suport'?'<span class="badge badge-blue">Suport IT</span>':'<span class="badge badge-orange-fade">Achiziții IT</span>'}</td>
+        <td data-label="Prioritate">${priorityBadge(t.priority)}</td><td data-label="Status">${ticketStatusBadge(t, true)}</td>
+        <td data-label="Asignat">${t.assignedAdminName?`<span class="assign-badge">${t.assignedAdminName}</span>`:'<span class="assign-badge unassigned">Neasignat</span>'}</td>
       </tr>`).join('')}</tbody></table></div>`}
     </div>`;
 }
@@ -3023,10 +3031,10 @@ function renderProfile() {
         </div>
         <div class="two-col">
           ${isAdmin?`<div class="form-group"><label>Funcție</label><input id="prof-func" value="${u.function||'Administrator'}"></div>`:
-            `<div class="form-group"><label>Funcție *</label><input id="prof-func" value="${u.function||''}"></div>`}
+            `<div class="form-group"><label>Funcție</label><input id="prof-func" value="${u.function||''}"></div>`}
           <div class="form-group"><label>Telefon${isAdmin?'':' *'}</label><input id="prof-phone" value="${u.phone||''}"></div>
         </div>
-        ${isAdmin?'':`<div class="form-group"><label>Adresă AnyDesk</label><input id="prof-anydesk" value="${u.anydesk||''}"></div>`}
+        ${isAdmin?'':`<div class="form-group"><label>ID AnyDesk *</label><input id="prof-anydesk" value="${u.anydesk||''}"></div>`}
         <hr class="section-divider">
         <div style="font-size:13px;font-weight:600;color:#2A0070;margin-bottom:10px">🔒 Schimbare parolă</div>
         <div class="form-group"><label>Parolă curentă <span style="font-weight:400;color:#8a9bb0">(obligatoriu pentru schimbare)</span></label>
