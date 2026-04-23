@@ -151,7 +151,7 @@ tr:hover td{background:#faf5ff}
 .drop-zone.drag-over{background:#ede9fe;border-color:#6d28d9;border-style:solid;transform:scale(1.01)}
 .drop-zone .dz-icon{font-size:28px;margin-bottom:6px;display:block}
 .drop-zone .dz-hint{font-size:11px;color:#8a9bb0;margin-top:6px}
-textarea.auto-expand{resize:vertical;min-height:80px;overflow-y:hidden;transition:height .1s}
+textarea.auto-expand{resize:vertical;min-height:200px;overflow-y:hidden;transition:height .1s}
 .badge-external{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;font-weight:700;padding:2px 7px;border-radius:5px;font-size:10px;letter-spacing:.3px;text-transform:uppercase}
 .ticket-row.row-external td{background:rgba(254,226,226,.35)}
 body.dark-mode .badge-external{background:#450a0a!important;color:#fca5a5!important;border-color:#7f1d1d!important}
@@ -1585,7 +1585,7 @@ function openNewTicket(module) {
       <div style="font-size:11px;color:#5a6a7e;margin-top:6px">Dacă problema ta seamănă cu una dintre acestea, formularul se completează automat — apoi ajustează ce e specific situației tale.</div>
     </div>
     <div class="form-group"><label>Titlu / Subiect *</label><input id="nt-title" placeholder="${module==='suport'?'ex: Nu se poate conecta la imprimantă':'ex: Achiziție laptop Dell pentru departament'}"></div>
-    <div class="form-group"><label>Descriere detaliată *</label><textarea id="nt-desc" rows="4" placeholder="${module==='suport'?'Descrie problema în detaliu...':'Descrie echipamentul/serviciul dorit...'}"></textarea></div>
+    <div class="form-group"><label>Descriere detaliată *</label><textarea id="nt-desc" rows="10" placeholder="${module==='suport'?'Descrie problema în detaliu...':'Descrie echipamentul/serviciul dorit...'}"></textarea></div>
     <div class="two-col">
       <div class="form-group"><label>Prioritate</label>
         <select id="nt-priority"><option value="Low">Low — Fără urgență</option><option value="Medium" selected>Medium — Normal</option><option value="High">High — Urgent</option></select></div>
